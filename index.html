@@ -2,34 +2,51 @@
 <html>
 <head>
     <title>AI Event Planner</title>
+
     <style>
         body {
-            font-family: Arial;
-            background: linear-gradient(135deg, #1e1e2f, #2c2c54);
-            color: white;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top, #1a001f, #000000);
+            color: #fff;
             text-align: center;
-            padding: 20px;
         }
 
         h1 {
-            font-size: 40px;
-            margin-bottom: 10px;
+            font-size: 42px;
+            margin-top: 20px;
+            color: #d400ff;
+            text-shadow: 0 0 20px #d400ff;
+        }
+
+        .container {
+            width: 70%;
+            margin: auto;
         }
 
         .card {
-            background: #2f2f4f;
+            background: rgba(30, 0, 40, 0.7);
+            margin: 20px 0;
             padding: 20px;
-            margin: 20px auto;
             border-radius: 15px;
-            width: 60%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px #8a00ff;
+            backdrop-filter: blur(10px);
+            transition: 0.3s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 40px #d400ff;
         }
 
         input {
             padding: 10px;
             border-radius: 8px;
             border: none;
+            outline: none;
             width: 150px;
+            background: #1a001f;
+            color: white;
         }
 
         button {
@@ -37,7 +54,7 @@
             margin-left: 10px;
             border: none;
             border-radius: 8px;
-            background: linear-gradient(45deg, #ff7a18, #ffb347);
+            background: linear-gradient(45deg, #8a00ff, #d400ff);
             color: white;
             font-weight: bold;
             cursor: pointer;
@@ -46,48 +63,85 @@
 
         button:hover {
             transform: scale(1.1);
-            box-shadow: 0 0 15px #ffb347;
+            box-shadow: 0 0 20px #d400ff;
         }
 
-        pre {
-            text-align: left;
-            white-space: pre-wrap;
+        .loading {
+            display: none;
+            margin-top: 10px;
         }
+
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #d400ff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .chatbox {
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .bubble {
+            background: #2a0033;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #8a00ff;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
     </style>
 </head>
 
 <body>
 
-<h1>🤖 AI Event Planning Agent</h1>
-<p>Dynamic Scheduling with Smart AI Decisions</p>
+<h1>🤖 AI Event Planner</h1>
 
-<div class="card">
-    <h2>🎛️ Controls</h2>
-    <label>Budget:</label>
-    <input type="number" id="budget" value="1000">
-    <button onclick="generate()">⚡ Generate Plan</button>
-</div>
+<div class="container">
 
-<div class="card">
-    <h2>📅 Schedule</h2>
-    <pre id="schedule">Waiting...</pre>
-</div>
+    <div class="card">
+        <h2>🎛️ Controls</h2>
+        <input type="number" id="budget" value="1000">
+        <button onclick="generate()">⚡ Generate Plan</button>
 
-<div class="card">
-    <h2>💰 Budget Used</h2>
-    <p id="budgetUsed">-</p>
-</div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>AI is thinking...</p>
+        </div>
+    </div>
 
-<div class="card">
-    <h2>🤖 AI Decisions</h2>
-    <pre id="explanation">-</pre>
+    <div class="card">
+        <h2>💬 AI Output</h2>
+        <div class="chatbox" id="chatbox"></div>
+    </div>
+
 </div>
 
 <script>
 function generate() {
     let budget = document.getElementById("budget").value;
+    let chatbox = document.getElementById("chatbox");
+    let loading = document.getElementById("loading");
 
-    fetch("/generate", {
+    chatbox.innerHTML = "";
+    loading.style.display = "block";
+
+    fetch("http://127.0.0.1:5000/generate", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -96,10 +150,19 @@ function generate() {
     })
     .then(res => res.json())
     .then(data => {
-        document.getElementById("schedule").innerText = data.schedule.join("\n");
-        document.getElementById("budgetUsed").innerText = "₹ " + data.budget;
-        document.getElementById("explanation").innerText = data.explanation.join("\n");
+        loading.style.display = "none";
+
+        addBubble("📅 Schedule:\n" + data.schedule.join("\n"));
+        addBubble("💰 Budget Used: ₹ " + data.budget);
+        addBubble("🤖 AI Decisions:\n" + data.explanation.join("\n"));
     });
+}
+
+function addBubble(text) {
+    let div = document.createElement("div");
+    div.className = "bubble";
+    div.innerText = text;
+    document.getElementById("chatbox").appendChild(div);
 }
 </script>
 
