@@ -1,78 +1,133 @@
-from flask import Flask, request, jsonify, send_from_directory
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Event Planner</title>
 
-app = Flask(__name__)
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-@app.route('/')
-def home():
-    return send_from_directory('.', 'index.html')
+<style>
+body {
+    background: #121212;
+    color: #fff;
+    font-family: Arial;
+    text-align: center;
+}
 
+h1 {
+    color: #ff2d55;
+}
 
-def schedule_event(data):
-    speakers = data.get("speakers", [])
-    venues = data.get("venues", [])
-    budget = data.get("budget", 1000)
+.card {
+    background: #1e1e1e;
+    margin: 20px auto;
+    padding: 20px;
+    width: 70%;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(255,45,85,0.3);
+}
 
-    preferences = {s["name"]: s.get("preference", 50) for s in speakers}
+button {
+    padding: 10px 20px;
+    background: #ff2d55;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
 
-    # Agent 1: Experience Agent
-    speakers = sorted(speakers, key=lambda s: preferences[s["name"]], reverse=True)
+button:hover {
+    transform: scale(1.1);
+}
 
-    # Agent 2: Resource Agent
-    venues = sorted(venues, key=lambda v: v["capacity"], reverse=True)
+textarea {
+    width: 80%;
+    height: 80px;
+    margin: 10px;
+    border-radius: 8px;
+    background: #222;
+    color: white;
+}
 
-    used = set()
-    schedule = []
-    explanation = []
-    used_budget = 0
+.bubble {
+    background: #2a2a2a;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+    animation: fade 0.5s;
+}
 
-    time_slots = ["10AM", "11AM", "12PM"]
+@keyframes fade {
+    from {opacity:0;}
+    to {opacity:1;}
+}
+</style>
+</head>
 
-    for sp in speakers:
-        assigned = False
+<body>
 
-        for t in time_slots:
-            for v in venues:
+<h1>🤖 AI Event Planner</h1>
 
-                if (t, v["name"]) in used:
-                    continue
+<div class="card">
+    <h3>🎛 Inputs</h3>
 
-                if used_budget + sp["cost"] <= budget and v["capacity"] >= sp["expected"]:
-                    schedule.append(f"{sp['name']} → {v['name']} at {t}")
+    <textarea id="speakers">[{"name":"Alice","cost":500,"expected":90,"preference":95}]</textarea>
+    <textarea id="venues">[{"name":"Hall A","capacity":100}]</textarea>
 
-                    explanation.append(
-                        f"[Planner Agent] Assigned {sp['name']} at {t}\n"
-                        f"[Resource Agent] Budget OK, Capacity OK\n"
-                        f"[Experience Agent] High preference ({preferences[sp['name']]})"
-                    )
+    <br>
+    Budget: <input type="number" id="budget" value="1000">
 
-                    used.add((t, v["name"]))
-                    used_budget += sp["cost"]
-                    assigned = True
-                    break
+    <br><br>
+    <button onclick="generate()">🚀 Generate Plan</button>
+    <button onclick="simulate()">⚡ Simulate Change</button>
+</div>
 
-            if assigned:
-                break
+<div class="card">
+    <h3>💬 Output</h3>
+    <div id="output"></div>
+</div>
 
-        if not assigned:
-            explanation.append(
-                f"{sp['name']} could NOT be scheduled (conflict/budget issue)"
-            )
+<script>
+function generate() {
+    let speakers = JSON.parse(document.getElementById("speakers").value);
+    let venues = JSON.parse(document.getElementById("venues").value);
+    let budget = parseInt(document.getElementById("budget").value);
 
-    return schedule, used_budget, explanation
-
-
-@app.route('/generate', methods=['POST'])
-def generate():
-    data = request.get_json()
-
-    schedule, budget_used, explanation = schedule_event(data)
-
-    return jsonify({
-        "schedule": schedule,
-        "budget": budget_used,
-        "explanation": explanation
+    fetch("/generate", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({speakers, venues, budget})
     })
+    .then(res=>res.json())
+    .then(data=>{
+        show(data);
 
+        // 🎉 CONFETTI
+        confetti({particleCount:100, spread:70});
+    });
+}
 
-if __name__ == "__main__":
-    app.run(debug=True)
+function simulate() {
+    let budget = document.getElementById("budget");
+    budget.value = budget.value - 200;
+    generate();
+}
+
+function show(data) {
+    let out = document.getElementById("output");
+    out.innerHTML = "";
+
+    add("📅 Schedule:\n" + data.schedule.join("\n"));
+    add("💰 Budget Used: " + data.budget);
+    add("🤖 Decisions:\n" + data.explanation.join("\n"));
+}
+
+function add(text){
+    let d=document.createElement("div");
+    d.className="bubble";
+    d.innerText=text;
+    document.getElementById("output").appendChild(d);
+}
+</script>
+
+</body>
+</html>
