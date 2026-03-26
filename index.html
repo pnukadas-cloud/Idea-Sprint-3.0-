@@ -15,44 +15,40 @@ body {
 
 h1 {
     color: #e1306c;
-    text-shadow: 0 0 15px #e1306c;
 }
 
 .card {
     background: #1e1e1e;
     margin: 20px auto;
     padding: 20px;
-    width: 75%;
+    width: 80%;
     border-radius: 12px;
-    box-shadow: 0 0 20px rgba(225,48,108,0.3);
 }
 
-textarea, input {
-    margin: 8px;
+input {
+    margin: 5px;
     padding: 8px;
     border-radius: 6px;
     border: none;
-    width: 80%;
-    background: #222;
-    color: white;
 }
 
 button {
     padding: 10px 20px;
-    background: linear-gradient(45deg,#833ab4,#fd1d1d,#fcb045);
+    background: #e1306c;
     border: none;
     color: white;
     border-radius: 8px;
     cursor: pointer;
 }
 
-button:hover {
-    transform: scale(1.1);
+.speaker-box {
+    border: 1px solid #444;
+    padding: 10px;
+    margin: 10px;
 }
 
 table {
     width: 100%;
-    margin-top: 10px;
     border-collapse: collapse;
 }
 
@@ -63,8 +59,8 @@ td, th {
 
 .bubble {
     background: #2a2a2a;
-    padding: 10px;
     margin: 10px;
+    padding: 10px;
     border-radius: 10px;
 }
 </style>
@@ -72,30 +68,23 @@ td, th {
 
 <body>
 
-<h1>🤖 AI Event Planning Platform</h1>
+<h1>🤖 AI Event Planner</h1>
 
 <div class="card">
 
 <h3>👥 Speakers</h3>
-<textarea id="speakers">
-[
- {"name":"Alice","cost":500,"expected":90,"preference":95,"topic":"AI"},
- {"name":"Bob","cost":300,"expected":40,"preference":70,"topic":"Robotics"}
-]
-</textarea>
+<div id="speakers"></div>
 
-<h3>🏟 Venues</h3>
-<textarea id="venues">
-[
- {"name":"Hall A","capacity":100},
- {"name":"Hall B","capacity":50}
-]
-</textarea>
+<button onclick="addSpeaker()">➕ Add Speaker</button>
+
+<h3>🏟 Venue</h3>
+Name: <input id="v_name" value="Hall A">
+Capacity: <input id="v_cap" value="100">
 
 <h3>💰 Budget</h3>
-<input type="number" id="budget" value="1000">
+<input id="budget" value="1000">
 
-<h3>🎯 Attendee Interest</h3>
+<h3>🎯 Interest</h3>
 <input id="interest" placeholder="AI / Robotics">
 
 <br><br>
@@ -113,10 +102,49 @@ td, th {
 <script>
 let originalBudget = 1000;
 
-function generate() {
+function addSpeaker() {
+    let div = document.createElement("div");
+    div.className = "speaker-box";
 
-    let speakers = JSON.parse(document.getElementById("speakers").value);
-    let venues = JSON.parse(document.getElementById("venues").value);
+    div.innerHTML = `
+    Name: <input class="name">
+    Cost: <input class="cost">
+    Expected: <input class="expected">
+    Preference: <input class="pref">
+    Topic: <input class="topic">
+    `;
+
+    document.getElementById("speakers").appendChild(div);
+}
+
+// Add one default speaker
+addSpeaker();
+
+function getSpeakers() {
+    let boxes = document.querySelectorAll(".speaker-box");
+    let speakers = [];
+
+    boxes.forEach(b => {
+        speakers.push({
+            name: b.querySelector(".name").value,
+            cost: parseInt(b.querySelector(".cost").value),
+            expected: parseInt(b.querySelector(".expected").value),
+            preference: parseInt(b.querySelector(".pref").value),
+            topic: b.querySelector(".topic").value
+        });
+    });
+
+    return speakers;
+}
+
+function generate() {
+    let speakers = getSpeakers();
+
+    let venue = [{
+        name: document.getElementById("v_name").value,
+        capacity: parseInt(document.getElementById("v_cap").value)
+    }];
+
     let budget = parseInt(document.getElementById("budget").value);
     let interest = document.getElementById("interest").value;
 
@@ -125,19 +153,42 @@ function generate() {
     fetch("/generate", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({speakers, venues, budget, interest})
+        body: JSON.stringify({speakers, venues: venue, budget, interest})
     })
     .then(res=>res.json())
     .then(data=>{
         show(data);
-        confetti({particleCount:150, spread:80});
+        confetti({particleCount:120, spread:70}); // ONLY here
     });
 }
 
 function simulate() {
     let newBudget = originalBudget - 200;
     document.getElementById("budget").value = newBudget;
-    generate();
+
+    fetchData(); // no confetti
+}
+
+function fetchData() {
+    let speakers = getSpeakers();
+
+    let venue = [{
+        name: document.getElementById("v_name").value,
+        capacity: parseInt(document.getElementById("v_cap").value)
+    }];
+
+    let budget = parseInt(document.getElementById("budget").value);
+    let interest = document.getElementById("interest").value;
+
+    fetch("/generate", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({speakers, venues: venue, budget, interest})
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        show(data);
+    });
 }
 
 function show(data) {
@@ -157,16 +208,12 @@ function show(data) {
     table += "</table>";
 
     add(table);
-
     add("💰 Budget Used: " + data.budget);
-
-    add("🤖 AI Decisions:\n" + data.explanation.join("\n"));
-
+    add("🤖 Decisions:<br>" + data.explanation.join("<br>"));
     add("🎯 Recommended: " + (data.recommendations.join(", ") || "None"));
 
-    // Speaker Profiles
     data.schedule.forEach(s => {
-        add(`👤 ${s.speaker} is a featured speaker in this event.`);
+        add(`👤 ${s.speaker} is a featured speaker.`);
     });
 }
 
