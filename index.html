@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Event Planner</title>
+</head>
+<body>
+
+<h1>🤖 AI Event Planner</h1>
+
+<label>Budget:</label>
+<input type="number" id="budget" value="1000">
+<button onclick="generate()">Generate</button>
+
+<h3>📅 Schedule</h3>
+<pre id="schedule"></pre>
+
+<h3>💰 Budget Used</h3>
+<p id="budgetUsed"></p>
+
+<h3>🤖 AI Decisions</h3>
+<pre id="explanation"></pre>
+
+<script>
+function generate() {
+    let budget = document.getElementById("budget").value;
+
+    fetch("/generate", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({budget: budget})
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("schedule").innerText = data.schedule.join("\n");
+        document.getElementById("budgetUsed").innerText = data.budget;
+        document.getElementById("explanation").innerText = data.explanation.join("\n");
+    });
+}
+</script>
+
+</body>
+</html>
