@@ -151,4 +151,64 @@
 <script>
 function generate() {
     let budget = document.getElementById("budget").value;
-    let chatbox = document.getElementById("chatbo
+    let chatbox = document.getElementById("chatbox");
+    let loading = document.getElementById("loading");
+
+    chatbox.innerHTML = "";
+    loading.style.display = "block";
+
+    // User bubble
+    addBubble("💰 Budget: ₹ " + budget, "user");
+
+    fetch("http://127.0.0.1:5000/generate", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ budget: budget })
+    })
+    .then(res => res.json())
+    .then(async data => {
+        loading.style.display = "none";
+
+        await typeBubble("📅 Schedule:\n" + data.schedule.join("\n"));
+        await typeBubble("💰 Budget Used: ₹ " + data.budget);
+        await typeBubble("🤖 AI Decisions:\n" + data.explanation.join("\n"));
+    })
+    .catch(err => {
+        loading.style.display = "none";
+        addBubble("❌ Error: " + err);
+    });
+}
+
+function addBubble(text, type="bot") {
+    let div = document.createElement("div");
+    div.className = "bubble " + (type === "user" ? "user" : "");
+    div.innerText = text;
+    document.getElementById("chatbox").appendChild(div);
+}
+
+// Typing effect
+function typeBubble(text) {
+    return new Promise(resolve => {
+        let div = document.createElement("div");
+        div.className = "bubble";
+        document.getElementById("chatbox").appendChild(div);
+
+        let i = 0;
+        function type() {
+            if (i < text.length) {
+                div.innerText += text.charAt(i);
+                i++;
+                setTimeout(type, 15);
+            } else {
+                resolve();
+            }
+        }
+        type();
+    });
+}
+</script>
+
+</body>
+</html>
