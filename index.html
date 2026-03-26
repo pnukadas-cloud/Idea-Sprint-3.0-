@@ -26,6 +26,13 @@ h1 {
     box-shadow: 0 0 20px rgba(255,45,85,0.3);
 }
 
+input {
+    padding: 8px;
+    margin: 5px;
+    border-radius: 6px;
+    border: none;
+}
+
 button {
     padding: 10px 20px;
     background: #ff2d55;
@@ -37,15 +44,6 @@ button {
 
 button:hover {
     transform: scale(1.1);
-}
-
-textarea {
-    width: 80%;
-    height: 80px;
-    margin: 10px;
-    border-radius: 8px;
-    background: #222;
-    color: white;
 }
 
 .bubble {
@@ -70,11 +68,18 @@ textarea {
 <div class="card">
     <h3>🎛 Inputs</h3>
 
-    <textarea id="speakers">[{"name":"Alice","cost":500,"expected":90,"preference":95}]</textarea>
-    <textarea id="venues">[{"name":"Hall A","capacity":100}]</textarea>
+    <h4>Speaker</h4>
+    Name: <input id="s_name" value="Alice"><br>
+    Cost: <input id="s_cost" value="500"><br>
+    Expected Audience: <input id="s_exp" value="90"><br>
+    Preference: <input id="s_pref" value="95"><br>
 
-    <br>
-    Budget: <input type="number" id="budget" value="1000">
+    <h4>Venue</h4>
+    Name: <input id="v_name" value="Hall A"><br>
+    Capacity: <input id="v_cap" value="100"><br>
+
+    <h4>Budget</h4>
+    <input type="number" id="budget" value="1000">
 
     <br><br>
     <button onclick="generate()">🚀 Generate Plan</button>
@@ -87,28 +92,42 @@ textarea {
 </div>
 
 <script>
+let originalBudget = 1000;
+
 function generate() {
-    let speakers = JSON.parse(document.getElementById("speakers").value);
-    let venues = JSON.parse(document.getElementById("venues").value);
+
+    let speaker = [{
+        name: document.getElementById("s_name").value,
+        cost: parseInt(document.getElementById("s_cost").value),
+        expected: parseInt(document.getElementById("s_exp").value),
+        preference: parseInt(document.getElementById("s_pref").value)
+    }];
+
+    let venue = [{
+        name: document.getElementById("v_name").value,
+        capacity: parseInt(document.getElementById("v_cap").value)
+    }];
+
     let budget = parseInt(document.getElementById("budget").value);
+
+    originalBudget = budget;
 
     fetch("/generate", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({speakers, venues, budget})
+        body: JSON.stringify({speakers: speaker, venues: venue, budget: budget})
     })
     .then(res=>res.json())
     .then(data=>{
         show(data);
-
-        // 🎉 CONFETTI
         confetti({particleCount:100, spread:70});
     });
 }
 
 function simulate() {
-    let budget = document.getElementById("budget");
-    budget.value = budget.value - 200;
+    let newBudget = originalBudget - 200;
+    document.getElementById("budget").value = newBudget;
+
     generate();
 }
 
