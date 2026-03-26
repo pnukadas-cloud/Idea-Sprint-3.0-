@@ -2,23 +2,86 @@
 <html>
 <head>
     <title>AI Event Planner</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(135deg, #1e1e2f, #2c2c54);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: #2f2f4f;
+            padding: 20px;
+            margin: 20px auto;
+            border-radius: 15px;
+            width: 60%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            width: 150px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #ff7a18, #ffb347);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px #ffb347;
+        }
+
+        pre {
+            text-align: left;
+            white-space: pre-wrap;
+        }
+    </style>
 </head>
+
 <body>
 
-<h1>🤖 AI Event Planner</h1>
+<h1>🤖 AI Event Planning Agent</h1>
+<p>Dynamic Scheduling with Smart AI Decisions</p>
 
-<label>Budget:</label>
-<input type="number" id="budget" value="1000">
-<button onclick="generate()">Generate</button>
+<div class="card">
+    <h2>🎛️ Controls</h2>
+    <label>Budget:</label>
+    <input type="number" id="budget" value="1000">
+    <button onclick="generate()">⚡ Generate Plan</button>
+</div>
 
-<h3>📅 Schedule</h3>
-<pre id="schedule"></pre>
+<div class="card">
+    <h2>📅 Schedule</h2>
+    <pre id="schedule">Waiting...</pre>
+</div>
 
-<h3>💰 Budget Used</h3>
-<p id="budgetUsed"></p>
+<div class="card">
+    <h2>💰 Budget Used</h2>
+    <p id="budgetUsed">-</p>
+</div>
 
-<h3>🤖 AI Decisions</h3>
-<pre id="explanation"></pre>
+<div class="card">
+    <h2>🤖 AI Decisions</h2>
+    <pre id="explanation">-</pre>
+</div>
 
 <script>
 function generate() {
@@ -34,7 +97,7 @@ function generate() {
     .then(res => res.json())
     .then(data => {
         document.getElementById("schedule").innerText = data.schedule.join("\n");
-        document.getElementById("budgetUsed").innerText = data.budget;
+        document.getElementById("budgetUsed").innerText = "₹ " + data.budget;
         document.getElementById("explanation").innerText = data.explanation.join("\n");
     });
 }
