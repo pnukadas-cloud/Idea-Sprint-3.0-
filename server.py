@@ -11,21 +11,20 @@ def schedule_event(data):
     speakers = data.get("speakers", [])
     venues = data.get("venues", [])
     budget = data.get("budget", 1000)
+    interest = data.get("interest", "").lower()
 
     preferences = {s["name"]: s.get("preference", 50) for s in speakers}
 
-    # Agent 1: Experience Agent
     speakers = sorted(speakers, key=lambda s: preferences[s["name"]], reverse=True)
-
-    # Agent 2: Resource Agent
     venues = sorted(venues, key=lambda v: v["capacity"], reverse=True)
 
     used = set()
     schedule = []
     explanation = []
+    recommendations = []
     used_budget = 0
 
-    time_slots = ["10AM", "11AM", "12PM"]
+    time_slots = ["Mon 10AM", "Tue 11AM", "Wed 12PM"]
 
     for sp in speakers:
         assigned = False
@@ -37,13 +36,21 @@ def schedule_event(data):
                     continue
 
                 if used_budget + sp["cost"] <= budget and v["capacity"] >= sp["expected"]:
-                    schedule.append(f"{sp['name']} → {v['name']} at {t}")
+                    schedule.append({
+                        "speaker": sp["name"],
+                        "slot": t,
+                        "venue": v["name"]
+                    })
 
                     explanation.append(
-                        f"[Planner Agent] Assigned {sp['name']} at {t}\n"
-                        f"[Resource Agent] Budget OK, Capacity OK\n"
-                        f"[Experience Agent] High preference ({preferences[sp['name']]})"
+                        f"[Planner] {sp['name']} → {t} | "
+                        f"[Resource] Budget OK | "
+                        f"[Experience] Preference {preferences[sp['name']]}"
                     )
+
+                    # Attendee recommendations
+                    if interest and (interest in sp["name"].lower() or interest in sp.get("topic","").lower()):
+                        recommendations.append(sp["name"])
 
                     used.add((t, v["name"]))
                     used_budget += sp["cost"]
@@ -54,23 +61,22 @@ def schedule_event(data):
                 break
 
         if not assigned:
-            explanation.append(
-                f"{sp['name']} could NOT be scheduled (conflict/budget issue)"
-            )
+            explanation.append(f"{sp['name']} could NOT be scheduled")
 
-    return schedule, used_budget, explanation
+    return schedule, used_budget, explanation, recommendations
 
 
 @app.route('/generate', methods=['POST'])
 def generate():
     data = request.get_json()
 
-    schedule, budget_used, explanation = schedule_event(data)
+    schedule, budget_used, explanation, recommendations = schedule_event(data)
 
     return jsonify({
         "schedule": schedule,
         "budget": budget_used,
-        "explanation": explanation
+        "explanation": explanation,
+        "recommendations": recommendations
     })
 
 

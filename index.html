@@ -14,28 +14,32 @@ body {
 }
 
 h1 {
-    color: #ff2d55;
+    color: #e1306c;
+    text-shadow: 0 0 15px #e1306c;
 }
 
 .card {
     background: #1e1e1e;
     margin: 20px auto;
     padding: 20px;
-    width: 70%;
+    width: 75%;
     border-radius: 12px;
-    box-shadow: 0 0 20px rgba(255,45,85,0.3);
+    box-shadow: 0 0 20px rgba(225,48,108,0.3);
 }
 
-input {
+textarea, input {
+    margin: 8px;
     padding: 8px;
-    margin: 5px;
     border-radius: 6px;
     border: none;
+    width: 80%;
+    background: #222;
+    color: white;
 }
 
 button {
     padding: 10px 20px;
-    background: #ff2d55;
+    background: linear-gradient(45deg,#833ab4,#fd1d1d,#fcb045);
     border: none;
     color: white;
     border-radius: 8px;
@@ -46,49 +50,64 @@ button:hover {
     transform: scale(1.1);
 }
 
+table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: collapse;
+}
+
+td, th {
+    border: 1px solid #444;
+    padding: 8px;
+}
+
 .bubble {
     background: #2a2a2a;
     padding: 10px;
     margin: 10px;
     border-radius: 10px;
-    animation: fade 0.5s;
-}
-
-@keyframes fade {
-    from {opacity:0;}
-    to {opacity:1;}
 }
 </style>
 </head>
 
 <body>
 
-<h1>🤖 AI Event Planner</h1>
+<h1>🤖 AI Event Planning Platform</h1>
 
 <div class="card">
-    <h3>🎛 Inputs</h3>
 
-    <h4>Speaker</h4>
-    Name: <input id="s_name" value="Alice"><br>
-    Cost: <input id="s_cost" value="500"><br>
-    Expected Audience: <input id="s_exp" value="90"><br>
-    Preference: <input id="s_pref" value="95"><br>
+<h3>👥 Speakers</h3>
+<textarea id="speakers">
+[
+ {"name":"Alice","cost":500,"expected":90,"preference":95,"topic":"AI"},
+ {"name":"Bob","cost":300,"expected":40,"preference":70,"topic":"Robotics"}
+]
+</textarea>
 
-    <h4>Venue</h4>
-    Name: <input id="v_name" value="Hall A"><br>
-    Capacity: <input id="v_cap" value="100"><br>
+<h3>🏟 Venues</h3>
+<textarea id="venues">
+[
+ {"name":"Hall A","capacity":100},
+ {"name":"Hall B","capacity":50}
+]
+</textarea>
 
-    <h4>Budget</h4>
-    <input type="number" id="budget" value="1000">
+<h3>💰 Budget</h3>
+<input type="number" id="budget" value="1000">
 
-    <br><br>
-    <button onclick="generate()">🚀 Generate Plan</button>
-    <button onclick="simulate()">⚡ Simulate Change</button>
+<h3>🎯 Attendee Interest</h3>
+<input id="interest" placeholder="AI / Robotics">
+
+<br><br>
+
+<button onclick="generate()">🚀 Generate Plan</button>
+<button onclick="simulate()">⚡ Simulate Change</button>
+
 </div>
 
 <div class="card">
-    <h3>💬 Output</h3>
-    <div id="output"></div>
+<h3>📊 Schedule</h3>
+<div id="output"></div>
 </div>
 
 <script>
@@ -96,38 +115,28 @@ let originalBudget = 1000;
 
 function generate() {
 
-    let speaker = [{
-        name: document.getElementById("s_name").value,
-        cost: parseInt(document.getElementById("s_cost").value),
-        expected: parseInt(document.getElementById("s_exp").value),
-        preference: parseInt(document.getElementById("s_pref").value)
-    }];
-
-    let venue = [{
-        name: document.getElementById("v_name").value,
-        capacity: parseInt(document.getElementById("v_cap").value)
-    }];
-
+    let speakers = JSON.parse(document.getElementById("speakers").value);
+    let venues = JSON.parse(document.getElementById("venues").value);
     let budget = parseInt(document.getElementById("budget").value);
+    let interest = document.getElementById("interest").value;
 
     originalBudget = budget;
 
     fetch("/generate", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({speakers: speaker, venues: venue, budget: budget})
+        body: JSON.stringify({speakers, venues, budget, interest})
     })
     .then(res=>res.json())
     .then(data=>{
         show(data);
-        confetti({particleCount:100, spread:70});
+        confetti({particleCount:150, spread:80});
     });
 }
 
 function simulate() {
     let newBudget = originalBudget - 200;
     document.getElementById("budget").value = newBudget;
-
     generate();
 }
 
@@ -135,15 +144,36 @@ function show(data) {
     let out = document.getElementById("output");
     out.innerHTML = "";
 
-    add("📅 Schedule:\n" + data.schedule.join("\n"));
+    let table = "<table><tr><th>Speaker</th><th>Time</th><th>Venue</th></tr>";
+
+    data.schedule.forEach(s => {
+        table += `<tr>
+        <td>${s.speaker}</td>
+        <td>${s.slot}</td>
+        <td>${s.venue}</td>
+        </tr>`;
+    });
+
+    table += "</table>";
+
+    add(table);
+
     add("💰 Budget Used: " + data.budget);
-    add("🤖 Decisions:\n" + data.explanation.join("\n"));
+
+    add("🤖 AI Decisions:\n" + data.explanation.join("\n"));
+
+    add("🎯 Recommended: " + (data.recommendations.join(", ") || "None"));
+
+    // Speaker Profiles
+    data.schedule.forEach(s => {
+        add(`👤 ${s.speaker} is a featured speaker in this event.`);
+    });
 }
 
 function add(text){
     let d=document.createElement("div");
     d.className="bubble";
-    d.innerText=text;
+    d.innerHTML=text;
     document.getElementById("output").appendChild(d);
 }
 </script>
