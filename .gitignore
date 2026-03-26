@@ -1,0 +1,5 @@
+__pycache__/
+.tmp/
+python312/
+python-embed.zip
+get-pip.py
