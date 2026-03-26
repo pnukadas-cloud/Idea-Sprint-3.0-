@@ -1,214 +1,78 @@
-<!DOCTYPE html>
+from flask import Flask, request, jsonify, send_from_directory
 
-<html>
-<head>
-    <title>AI Event Planner</title>
+app = Flask(__name__)
 
-```
-<style>
-    body {
-        margin: 0;
-        font-family: 'Segoe UI', sans-serif;
-        background: radial-gradient(circle at top, #1a001f, #000000);
-        color: #fff;
-        text-align: center;
-    }
+@app.route('/')
+def home():
+    return send_from_directory('.', 'index.html')
 
-    h1 {
-        font-size: 42px;
-        margin-top: 20px;
-        color: #d400ff;
-        text-shadow: 0 0 20px #d400ff, 0 0 40px #8a00ff;
-    }
 
-    .container {
-        width: 70%;
-        margin: auto;
-    }
+def schedule_event(data):
+    speakers = data.get("speakers", [])
+    venues = data.get("venues", [])
+    budget = data.get("budget", 1000)
 
-    .card {
-        background: rgba(30, 0, 40, 0.7);
-        margin: 20px 0;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 0 25px #8a00ff;
-        backdrop-filter: blur(12px);
-        transition: 0.4s;
-    }
+    preferences = {s["name"]: s.get("preference", 50) for s in speakers}
 
-    .card:hover {
-        transform: scale(1.02);
-        box-shadow: 0 0 50px #d400ff;
-    }
+    # Agent 1: Experience Agent
+    speakers = sorted(speakers, key=lambda s: preferences[s["name"]], reverse=True)
 
-    input {
-        padding: 10px;
-        border-radius: 8px;
-        border: none;
-        outline: none;
-        width: 150px;
-        background: #1a001f;
-        color: white;
-        box-shadow: 0 0 10px #8a00ff;
-    }
+    # Agent 2: Resource Agent
+    venues = sorted(venues, key=lambda v: v["capacity"], reverse=True)
 
-    button {
-        padding: 10px 20px;
-        margin-left: 10px;
-        border: none;
-        border-radius: 8px;
-        background: linear-gradient(45deg, #8a00ff, #d400ff);
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.3s;
-        box-shadow: 0 0 15px #8a00ff;
-    }
+    used = set()
+    schedule = []
+    explanation = []
+    used_budget = 0
 
-    button:hover {
-        transform: scale(1.1);
-        box-shadow: 0 0 30px #d400ff;
-    }
+    time_slots = ["10AM", "11AM", "12PM"]
 
-    .loading {
-        display: none;
-        margin-top: 10px;
-    }
+    for sp in speakers:
+        assigned = False
 
-    .spinner {
-        border: 4px solid #333;
-        border-top: 4px solid #d400ff;
-        border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        animation: spin 1s linear infinite;
-        margin: auto;
-    }
+        for t in time_slots:
+            for v in venues:
 
-    @keyframes spin {
-        100% { transform: rotate(360deg); }
-    }
+                if (t, v["name"]) in used:
+                    continue
 
-    .chatbox {
-        text-align: left;
-        max-height: 350px;
-        overflow-y: auto;
-        scroll-behavior: smooth;
-    }
+                if used_budget + sp["cost"] <= budget and v["capacity"] >= sp["expected"]:
+                    schedule.append(f"{sp['name']} → {v['name']} at {t}")
 
-    .bubble {
-        background: #2a0033;
-        margin: 10px;
-        padding: 12px;
-        border-radius: 12px;
-        box-shadow: 0 0 15px #8a00ff;
-        animation: fadeIn 0.4s ease-in;
-        max-width: 80%;
-    }
+                    explanation.append(
+                        f"[Planner Agent] Assigned {sp['name']} at {t}\n"
+                        f"[Resource Agent] Budget OK, Capacity OK\n"
+                        f"[Experience Agent] High preference ({preferences[sp['name']]})"
+                    )
 
-    .user {
-        background: #4a0066;
-        align-self: flex-end;
-        margin-left: auto;
-    }
+                    used.add((t, v["name"]))
+                    used_budget += sp["cost"]
+                    assigned = True
+                    break
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+            if assigned:
+                break
 
-</style>
-```
+        if not assigned:
+            explanation.append(
+                f"{sp['name']} could NOT be scheduled (conflict/budget issue)"
+            )
 
-</head>
+    return schedule, used_budget, explanation
 
-<body>
 
-<h1>🤖 AI Event Planner</h1>
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
 
-<div class="container">
+    schedule, budget_used, explanation = schedule_event(data)
 
-```
-<div class="card">
-    <h2>🎛️ Controls</h2>
-    <input type="number" id="budget" value="1000">
-    <button onclick="generate()">⚡ Generate Plan</button>
-
-    <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <p>AI is thinking...</p>
-    </div>
-</div>
-
-<div class="card">
-    <h2>💬 AI Output</h2>
-    <div class="chatbox" id="chatbox"></div>
-</div>
-```
-
-</div>
-
-<script>
-function generate() {
-    let budget = document.getElementById("budget").value;
-    let chatbox = document.getElementById("chatbox");
-    let loading = document.getElementById("loading");
-
-    chatbox.innerHTML = "";
-    loading.style.display = "block";
-
-    // User bubble
-    addBubble("💰 Budget: ₹ " + budget, "user");
-
-    fetch("http://127.0.0.1:5000/generate", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ budget: budget })
+    return jsonify({
+        "schedule": schedule,
+        "budget": budget_used,
+        "explanation": explanation
     })
-    .then(res => res.json())
-    .then(async data => {
-        loading.style.display = "none";
 
-        await typeBubble("📅 Schedule:\n" + data.schedule.join("\n"));
-        await typeBubble("💰 Budget Used: ₹ " + data.budget);
-        await typeBubble("🤖 AI Decisions:\n" + data.explanation.join("\n"));
-    })
-    .catch(err => {
-        loading.style.display = "none";
-        addBubble("❌ Error: " + err);
-    });
-}
 
-function addBubble(text, type="bot") {
-    let div = document.createElement("div");
-    div.className = "bubble " + (type === "user" ? "user" : "");
-    div.innerText = text;
-    document.getElementById("chatbox").appendChild(div);
-}
-
-// Typing effect
-function typeBubble(text) {
-    return new Promise(resolve => {
-        let div = document.createElement("div");
-        div.className = "bubble";
-        document.getElementById("chatbox").appendChild(div);
-
-        let i = 0;
-        function type() {
-            if (i < text.length) {
-                div.innerText += text.charAt(i);
-                i++;
-                setTimeout(type, 15);
-            } else {
-                resolve();
-            }
-        }
-        type();
-    });
-}
-</script>
-
-</body>
-</html>
+if __name__ == "__main__":
+    app.run(debug=True)

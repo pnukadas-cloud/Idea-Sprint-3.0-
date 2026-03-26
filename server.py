@@ -2,40 +2,22 @@ from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__)
 
-# -----------------------------
-# Serve HTML
-# -----------------------------
 @app.route('/')
 def home():
     return send_from_directory('.', 'index.html')
 
 
-# -----------------------------
-# AI Scheduling Logic
-# -----------------------------
-def schedule_event(budget):
+def schedule_event(data):
+    speakers = data.get("speakers", [])
+    venues = data.get("venues", [])
+    budget = data.get("budget", 1000)
 
-    speakers = [
-        {"name": "Alice", "cost": 500, "expected": 90},
-        {"name": "Bob", "cost": 300, "expected": 40},
-        {"name": "Charlie", "cost": 400, "expected": 60},
-    ]
+    preferences = {s["name"]: s.get("preference", 50) for s in speakers}
 
-    venues = [
-        {"name": "Hall A", "capacity": 100},
-        {"name": "Hall B", "capacity": 50},
-    ]
-
-    preferences = {
-        "Alice": 95,
-        "Bob": 70,
-        "Charlie": 85
-    }
-
-    # Experience Agent → sort by popularity
+    # Agent 1: Experience Agent
     speakers = sorted(speakers, key=lambda s: preferences[s["name"]], reverse=True)
 
-    # Resource Agent → sort venues
+    # Agent 2: Resource Agent
     venues = sorted(venues, key=lambda v: v["capacity"], reverse=True)
 
     used = set()
@@ -54,13 +36,13 @@ def schedule_event(budget):
                 if (t, v["name"]) in used:
                     continue
 
-                # Constraints check
                 if used_budget + sp["cost"] <= budget and v["capacity"] >= sp["expected"]:
                     schedule.append(f"{sp['name']} → {v['name']} at {t}")
 
                     explanation.append(
-                        f"{sp['name']} assigned to {v['name']} at {t} "
-                        f"(Preference={preferences[sp['name']]}, Capacity={v['capacity']})"
+                        f"[Planner Agent] Assigned {sp['name']} at {t}\n"
+                        f"[Resource Agent] Budget OK, Capacity OK\n"
+                        f"[Experience Agent] High preference ({preferences[sp['name']]})"
                     )
 
                     used.add((t, v["name"]))
@@ -73,25 +55,17 @@ def schedule_event(budget):
 
         if not assigned:
             explanation.append(
-                f"{sp['name']} could NOT be scheduled due to constraints"
+                f"{sp['name']} could NOT be scheduled (conflict/budget issue)"
             )
 
     return schedule, used_budget, explanation
 
 
-# -----------------------------
-# API endpoint
-# -----------------------------
 @app.route('/generate', methods=['POST'])
 def generate():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json()
 
-    try:
-        budget = int(data.get("budget", 1000))
-    except:
-        budget = 1000
-
-    schedule, budget_used, explanation = schedule_event(budget)
+    schedule, budget_used, explanation = schedule_event(data)
 
     return jsonify({
         "schedule": schedule,
@@ -100,8 +74,5 @@ def generate():
     })
 
 
-# -----------------------------
-# Run app
-# -----------------------------
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(debug=True)
