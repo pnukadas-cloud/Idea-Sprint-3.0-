@@ -10,7 +10,7 @@ This project is an AI-based event scheduling system that dynamically creates and
 
 ## 🛠️ Tech Stack
 - Python
-- Gradio
+- flask
 
 ## ▶️ Run Locally
 
