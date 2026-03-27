@@ -8,60 +8,52 @@
 <style>
 body {
     background: #121212;
-    color: #fff;
+    color: white;
     font-family: Arial;
     text-align: center;
-}
-
-h1 {
-    color: #e1306c;
 }
 
 .card {
     background: #1e1e1e;
     margin: 20px auto;
     padding: 20px;
-    width: 80%;
+    width: 90%;
     border-radius: 12px;
 }
 
 input {
     margin: 5px;
     padding: 8px;
-    border-radius: 6px;
-    border: none;
 }
 
 button {
-    padding: 10px 20px;
-    background: #e1306c;
-    border: none;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-.speaker-box {
-    border: 1px solid #444;
     padding: 10px;
-    margin: 10px;
+    background: #e1306c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
+    margin-top: 10px;
 }
 
 td, th {
     border: 1px solid #444;
-    padding: 8px;
+    padding: 10px;
 }
 
-.bubble {
-    background: #2a2a2a;
-    margin: 10px;
+.grid-cell {
+    height: 60px;
+}
+
+.speaker-box, .venue-box {
+    border: 1px solid #444;
     padding: 10px;
-    border-radius: 10px;
+    margin: 10px;
 }
 </style>
 </head>
@@ -74,18 +66,17 @@ td, th {
 
 <h3>👥 Speakers</h3>
 <div id="speakers"></div>
-
 <button onclick="addSpeaker()">➕ Add Speaker</button>
 
-<h3>🏟 Venue</h3>
-Name: <input id="v_name" value="Hall A">
-Capacity: <input id="v_cap" value="100">
+<h3>🏟 Venues</h3>
+<div id="venues"></div>
+<button onclick="addVenue()">➕ Add Hall</button>
 
 <h3>💰 Budget</h3>
 <input id="budget" value="1000">
 
 <h3>🎯 Interest</h3>
-<input id="interest" placeholder="AI / Robotics">
+<input id="interest">
 
 <br><br>
 
@@ -95,37 +86,52 @@ Capacity: <input id="v_cap" value="100">
 </div>
 
 <div class="card">
-<h3>📊 Schedule</h3>
-<div id="output"></div>
+<h3>📅 Timetable</h3>
+<div id="grid"></div>
 </div>
 
 <script>
 let originalBudget = 1000;
 
+// Add Speaker
 function addSpeaker() {
     let div = document.createElement("div");
     div.className = "speaker-box";
 
     div.innerHTML = `
-    Name: <input class="name">
-    Cost: <input class="cost">
-    Expected: <input class="expected">
-    Preference: <input class="pref">
-    Topic: <input class="topic">
+    Name <input class="name">
+    Cost <input class="cost">
+    Expected <input class="expected">
+    Preference <input class="pref">
+    Topic <input class="topic">
     `;
 
     document.getElementById("speakers").appendChild(div);
 }
 
-// Add one default speaker
-addSpeaker();
+// Add Venue
+function addVenue() {
+    let div = document.createElement("div");
+    div.className = "venue-box";
 
+    div.innerHTML = `
+    Name <input class="v_name">
+    Capacity <input class="v_cap">
+    `;
+
+    document.getElementById("venues").appendChild(div);
+}
+
+addSpeaker();
+addVenue();
+
+// Get Data
 function getSpeakers() {
     let boxes = document.querySelectorAll(".speaker-box");
-    let speakers = [];
+    let list = [];
 
     boxes.forEach(b => {
-        speakers.push({
+        list.push({
             name: b.querySelector(".name").value,
             cost: parseInt(b.querySelector(".cost").value),
             expected: parseInt(b.querySelector(".expected").value),
@@ -134,17 +140,27 @@ function getSpeakers() {
         });
     });
 
-    return speakers;
+    return list;
 }
 
+function getVenues() {
+    let boxes = document.querySelectorAll(".venue-box");
+    let list = [];
+
+    boxes.forEach(b => {
+        list.push({
+            name: b.querySelector(".v_name").value,
+            capacity: parseInt(b.querySelector(".v_cap").value)
+        });
+    });
+
+    return list;
+}
+
+// Generate
 function generate() {
     let speakers = getSpeakers();
-
-    let venue = [{
-        name: document.getElementById("v_name").value,
-        capacity: parseInt(document.getElementById("v_cap").value)
-    }];
-
+    let venues = getVenues();
     let budget = parseInt(document.getElementById("budget").value);
     let interest = document.getElementById("interest").value;
 
@@ -153,75 +169,86 @@ function generate() {
     fetch("/generate", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({speakers, venues: venue, budget, interest})
+        body: JSON.stringify({speakers, venues, budget, interest})
     })
-    .then(res=>res.json())
-    .then(data=>{
-        show(data);
-        confetti({particleCount:120, spread:70}); // ONLY here
+    .then(res => res.json())
+    .then(data => {
+        renderGrid(data.schedule, venues);
+        showExtra(data);
+        confetti({particleCount:120, spread:70});
     });
 }
 
+// Simulate (NO confetti)
 function simulate() {
-    let newBudget = originalBudget - 200;
-    document.getElementById("budget").value = newBudget;
-
-    fetchData(); // no confetti
+    document.getElementById("budget").value = originalBudget - 200;
+    fetchData();
 }
 
+// Fetch without confetti
 function fetchData() {
     let speakers = getSpeakers();
-
-    let venue = [{
-        name: document.getElementById("v_name").value,
-        capacity: parseInt(document.getElementById("v_cap").value)
-    }];
-
+    let venues = getVenues();
     let budget = parseInt(document.getElementById("budget").value);
     let interest = document.getElementById("interest").value;
 
     fetch("/generate", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({speakers, venues: venue, budget, interest})
+        body: JSON.stringify({speakers, venues, budget, interest})
     })
-    .then(res=>res.json())
-    .then(data=>{
-        show(data);
+    .then(res => res.json())
+    .then(data => {
+        renderGrid(data.schedule, venues);
+        showExtra(data);
     });
 }
 
-function show(data) {
-    let out = document.getElementById("output");
-    out.innerHTML = "";
+// Grid View
+function renderGrid(schedule, venues) {
+    let slots = ["Mon 10AM","Tue 11AM","Wed 12PM","Thu 1PM","Fri 2PM"];
 
-    let table = "<table><tr><th>Speaker</th><th>Time</th><th>Venue</th></tr>";
+    let table = "<table><tr><th>Time</th>";
 
-    data.schedule.forEach(s => {
-        table += `<tr>
-        <td>${s.speaker}</td>
-        <td>${s.slot}</td>
-        <td>${s.venue}</td>
-        </tr>`;
+    venues.forEach(v => {
+        table += `<th>${v.name}</th>`;
+    });
+
+    table += "</tr>";
+
+    slots.forEach(slot => {
+        table += `<tr><td>${slot}</td>`;
+
+        venues.forEach(v => {
+            let found = schedule.find(s => s.slot === slot && s.venue === v.name);
+
+            table += `<td class="grid-cell">${found ? found.speaker : "-"}</td>`;
+        });
+
+        table += "</tr>";
     });
 
     table += "</table>";
 
-    add(table);
-    add("💰 Budget Used: " + data.budget);
-    add("🤖 Decisions:<br>" + data.explanation.join("<br>"));
-    add("🎯 Recommended: " + (data.recommendations.join(", ") || "None"));
-
-    data.schedule.forEach(s => {
-        add(`👤 ${s.speaker} is a featured speaker.`);
-    });
+    document.getElementById("grid").innerHTML = table;
 }
 
-function add(text){
-    let d=document.createElement("div");
-    d.className="bubble";
-    d.innerHTML=text;
-    document.getElementById("output").appendChild(d);
+// Extra Info
+function showExtra(data) {
+    let div = document.createElement("div");
+
+    div.innerHTML = `
+    <br>
+    💰 Budget Used: ${data.budget}<br><br>
+
+    🤖 Decisions:<br>
+    ${data.explanation.join("<br>")}<br><br>
+
+    🎯 Recommended:<br>
+    ${data.recommendations.join(", ") || "None"}
+    `;
+
+    document.getElementById("grid").appendChild(div);
 }
 </script>
 
