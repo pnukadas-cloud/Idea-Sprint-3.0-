@@ -104,11 +104,14 @@ function addSpeaker() {
     Expected <input class="expected">
     Preference <input class="pref">
     Topic <input class="topic">
+
+    <button onclick="removeElement(this)" style="background:red;margin-left:10px;">
+        ❌ Remove
+    </button>
     `;
 
     document.getElementById("speakers").appendChild(div);
 }
-
 // Add Venue
 function addVenue() {
     let div = document.createElement("div");
@@ -117,11 +120,14 @@ function addVenue() {
     div.innerHTML = `
     Name <input class="v_name">
     Capacity <input class="v_cap">
+
+    <button onclick="removeElement(this)" style="background:red;margin-left:10px;">
+        ❌ Remove
+    </button>
     `;
 
     document.getElementById("venues").appendChild(div);
 }
-
 addSpeaker();
 addVenue();
 
@@ -142,7 +148,9 @@ function getSpeakers() {
 
     return list;
 }
-
+function removeElement(btn) {
+    btn.parentElement.remove();
+}
 function getVenues() {
     let boxes = document.querySelectorAll(".venue-box");
     let list = [];
