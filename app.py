@@ -521,7 +521,7 @@ def execute_plan(request: PlanRequest) -> Dict[str, object]:
     }
 
 
-app = FastAPI(title="Northstar Events")
+app = FastAPI(title="GITAM Events")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
