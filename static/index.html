@@ -2,12 +2,296 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=../index.html">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GITAM Events</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <p>Redirecting to the GITAM Events UI...</p>
-  <p>If this does not redirect automatically, open <a href="../index.html">the planner UI</a>.</p>
+  <div class="site-bg"></div>
+  <div class="page-shell">
+    <header class="hero-shell">
+      <div class="hero-copy">
+        <div class="brand-row">
+          <span class="brand-mark">G</span>
+          <div>
+            <p class="eyebrow">GITAM Events</p>
+            <p class="sub-eyebrow">AI-managed event operations with planner override</p>
+          </div>
+        </div>
+
+        <h1>Build the event plan with AI first, then let event planners refine the final schedule.</h1>
+        <p class="hero-text">
+          Enter speakers, venue resources, budget, and audience demand in structured blocks.
+          The AI creates the first schedule draft, and your planners can directly edit the schedule table after that.
+        </p>
+
+        <div class="hero-badges">
+          <span class="badge">AI generates first schedule</span>
+          <span class="badge">Planner-editable schedule table</span>
+          <span class="badge">Case-insensitive entity matching</span>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="visual-stage">
+          <div class="visual-screen visual-screen-main">
+            <span class="visual-label">AI Schedule Draft</span>
+            <strong>Auto-balanced keynote and breakout flow</strong>
+            <p>Capacity, budget, and demand signals are being reconciled in real time.</p>
+          </div>
+          <div class="visual-screen visual-screen-side">
+            <span class="visual-label">Planner Override</span>
+            <strong>Final run-of-show stays editable</strong>
+            <p>Operations team can tune assignments after the AI draft is ready.</p>
+          </div>
+          <div class="visual-orb visual-orb-a"></div>
+          <div class="visual-orb visual-orb-b"></div>
+        </div>
+
+        <div class="hero-metrics" id="hero-metrics">
+          <div class="metric-card">
+            <span>Scheduled Sessions</span>
+            <strong id="metric-sessions">0</strong>
+          </div>
+          <div class="metric-card">
+            <span>Budget Used</span>
+            <strong id="metric-budget">Rs.0</strong>
+          </div>
+          <div class="metric-card">
+            <span>Attendees Covered</span>
+            <strong id="metric-attendees">0</strong>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="panel panel-control">
+        <div class="section-title">
+          <div>
+            <h2>Event Inputs</h2>
+            <p class="section-copy">
+              Add each input as its own block. Speaker and venue spellings are matched without case sensitivity.
+            </p>
+          </div>
+          <button id="load-sample" class="ghost-button" type="button">Load Sample Data</button>
+        </div>
+
+        <div class="input-grid">
+          <label class="field">
+            <span>Budget Limit</span>
+            <input id="budget-limit" type="number" min="0" step="100" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Global Time Slots</span>
+            <input id="time-slots" type="text" placeholder="09:00,10:30,13:00,15:00" autocomplete="off" spellcheck="false">
+          </label>
+        </div>
+
+        <div class="builder-grid">
+          <article class="builder-card">
+            <div class="builder-head">
+              <div>
+                <h3>Speakers</h3>
+                <p>First input: Speaker, second: Price, third: Expected attendees, fourth: Time slots.</p>
+              </div>
+              <button id="add-speaker" class="ghost-button" type="button">Add Speaker</button>
+            </div>
+            <div class="table-wrap">
+              <table class="editor-table">
+                <thead>
+                  <tr>
+                    <th>Speaker</th>
+                    <th>Price</th>
+                    <th>Expected Attendees</th>
+                    <th>Track</th>
+                    <th>Time Slots</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="speakers-body"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="builder-card">
+            <div class="builder-head">
+              <div>
+                <h3>Venues</h3>
+                <p>Define venue capacity, per-slot cost, and available slots.</p>
+              </div>
+              <button id="add-venue" class="ghost-button" type="button">Add Venue</button>
+            </div>
+            <div class="table-wrap">
+              <table class="editor-table">
+                <thead>
+                  <tr>
+                    <th>Venue</th>
+                    <th>Capacity</th>
+                    <th>Cost / Slot</th>
+                    <th>Available Slots</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="venues-body"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="builder-card">
+            <div class="builder-head">
+              <div>
+                <h3>Audience Preferences</h3>
+                <p>Map speaker names to attendee demand scores.</p>
+              </div>
+              <button id="add-preference" class="ghost-button" type="button">Add Preference</button>
+            </div>
+            <div class="table-wrap">
+              <table class="editor-table">
+                <thead>
+                  <tr>
+                    <th>Speaker</th>
+                    <th>Preference Score</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="preferences-body"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+
+        <div class="scenario-bar">
+          <label class="field grow">
+            <span>Live Operations Update</span>
+            <input id="change-instruction" type="text" placeholder="cancel speaker Bob" autocomplete="off" spellcheck="false">
+          </label>
+          <button id="run-planner" class="primary-button" type="button">Generate AI Schedule</button>
+        </div>
+
+        <div class="chip-row">
+          <button class="chip" data-change="cancel speaker Bob" type="button">Speaker Cancellation</button>
+          <button class="chip" data-change="reduce venue Main Hall 30" type="button">Capacity Drop</button>
+          <button class="chip" data-change="remove slot 13:00" type="button">Slot Removed</button>
+          <button class="chip" data-change="increase preference Alice 10" type="button">Demand Surge</button>
+          <button class="chip" data-change="budget 2600" type="button">Budget Boost</button>
+        </div>
+      </section>
+
+      <section class="panel panel-impact">
+        <div class="section-title">
+          <div>
+            <h2>Operational Impact</h2>
+            <p class="section-copy">The AI shows what changed after the latest operational update.</p>
+          </div>
+          <span id="change-summary" class="status-pill">Waiting for plan</span>
+        </div>
+        <div class="impact-grid" id="impact-grid"></div>
+      </section>
+
+      <section class="results-grid">
+        <article class="panel">
+          <div class="section-title">
+            <div>
+              <h2>AI First Draft Schedule</h2>
+              <p class="section-copy">This table is generated by AI first and can then be edited by the event planner.</p>
+            </div>
+            <span class="legend">AI authority first</span>
+          </div>
+          <div id="baseline-summary" class="summary-strip"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Speaker</th>
+                  <th>Venue</th>
+                  <th>Slot</th>
+                  <th>Total Cost</th>
+                  <th>Preference</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody id="baseline-table"></tbody>
+            </table>
+          </div>
+          <div id="baseline-unscheduled" class="callout"></div>
+        </article>
+
+        <article class="panel">
+          <div class="section-title">
+            <div>
+              <h2>Event Planner Editable Schedule</h2>
+              <p class="section-copy">After the AI draft, planners can edit this schedule table directly.</p>
+            </div>
+            <span class="legend">Planner override enabled</span>
+          </div>
+          <div id="replanned-summary" class="summary-strip"></div>
+          <div class="table-wrap">
+            <table class="editor-table">
+              <thead>
+                <tr>
+                  <th>Speaker</th>
+                  <th>Venue</th>
+                  <th>Slot</th>
+                  <th>Total Cost</th>
+                  <th>Preference</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody id="replanned-table"></tbody>
+            </table>
+          </div>
+          <div id="replanned-unscheduled" class="callout"></div>
+        </article>
+      </section>
+
+      <section class="results-grid">
+        <article class="panel panel-reasoning">
+          <div class="section-title">
+            <div>
+              <h2>AI Decisions</h2>
+              <p class="section-copy">Why the AI selected the first schedule draft.</p>
+            </div>
+            <span class="legend">Decision feed</span>
+          </div>
+          <ol id="baseline-reasoning" class="timeline"></ol>
+        </article>
+
+        <article class="panel panel-reasoning">
+          <div class="section-title">
+            <div>
+              <h2>Re-optimization Notes</h2>
+              <p class="section-copy">What changed after constraints were updated.</p>
+            </div>
+            <span class="legend">Updated draft</span>
+          </div>
+          <ol id="replanned-reasoning" class="timeline"></ol>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <h2>Raw Backend Output</h2>
+            <p class="section-copy">Useful for demos, debugging, and final review.</p>
+          </div>
+          <span class="legend">API response</span>
+        </div>
+        <pre id="raw-output" class="code-block"></pre>
+      </section>
+    </main>
+  </div>
+
+  <template id="impact-card-template">
+    <div class="impact-card">
+      <span class="impact-label"></span>
+      <strong class="impact-value"></strong>
+    </div>
+  </template>
+
+  <script src="./app.js"></script>
 </body>
 </html>
